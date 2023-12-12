@@ -53,11 +53,15 @@ We'll use the MambaTower class above as the backbone of a vision model on the pa
 
 ### Setup:
 
-We compare the model above with a Transformer ViT-like model based on the same patches. Both models have an embed_dim of 256, 6 layers, and the Transformer model has an FFN dim of 2*embed_dim (512) to maintain similar # of parameters between the two models. 
+We compare the model above with a Transformer ViT-like model based on the same patches. 
+Both models have the following config: 
 
-We use a patch size of 4 and various basic augmentation techniques (see the code).
+- embed_dim = 256
+- 6 layers
+- the Transformer model has an FFN dim of 2*embed_dim (512) to maintain similar # of parameters between the two models.
+- patch size of 4 (so 64 patches of dimension 48) and various basic augmentation techniques (see the code).
 
-Here's the code for the steup - it's fairly straightforward (To get a ViT like model I replace the MambaTower with a stack of Transformer Encoders):
+Here's the code for the setup - it's fairly straightforward (To get a ViT like model I replace the MambaTower with a stack of Transformer Encoders):
 
 ```python
 class ImgClassifier(nn.Module):
@@ -83,7 +87,7 @@ class ImgClassifier(nn.Module):
 
 
 ### Results:
-The two models perform comparably, with the Mamba-based model having a slight edge (85% accuracy vs. 84% accuracy on the CIFAR-10 test set). While the Mamba model learns "faster" in terms of iterations, it's about twice as slow to train (note that I am using the simple Mamba class - their LLM [example](https://github.com/state-spaces/mamba/blob/main/mamba_ssm/models/mixer_seq_simple.py) looks more optimized but harder to read.
+The two models perform comparably, with the Mamba-based model having a slight edge (85% accuracy vs. 84% accuracy on the CIFAR-10 test set). While the Mamba model learns "faster" in terms of iterations, it's about twice as slow to train (note that I am using the simple Mamba class - their LLM [example](https://github.com/state-spaces/mamba/blob/main/mamba_ssm/models/mixer_seq_simple.py) looks more optimized but harder to read).
 
 Either way 85% accuracy on cifar-10 straight out of the box with no convolutions is not bad at all - so I was pretty impressed. 
 
