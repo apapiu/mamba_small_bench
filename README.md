@@ -1,15 +1,21 @@
 # Mamba Small Benchmarks:
 
-Trying out the [Mamba codebase](https://github.com/state-spaces/mamba) on small examples (cifar-10, shakespeare char level etc).
+Exploring the the [Mamba codebase](https://github.com/state-spaces/mamba) on small example datasets (CIFAR-10, Shakespeare character-level, etc.).
 
-Shere [here] for the paper.
+Shere the paper below: 
 
-**Note**: I am note by any means an expert at any of this so don't take this at face value - there most likely are ways to improve the mamba code - this is just a first pass at getting something up and running,
+    Mamba: Linear-Time Sequence Modeling with Selective State Spaces
+    Albert Gu*, Tri Dao*
+    Paper: https://arxiv.org/abs/2312.00752
+
+**Note**: I am not by any means an expert at any of this. Currently this is just a first pass at getting something up and running. There most likely are ways to improve both the architecture and the speed of the mamba code.  
 
 ## Stacking Mamba Layers:
-The Mamba architecture is a sequence to sequence architecture. Based on my basic understanding of the original paper and the Github the code below is a reasonable (altough likely not optimal) way to use the Mamba architeccutre. The idea is simple: stack a few mamba layers with normalization and optionally dropout. No need to add positional encoding or masking.
+The Mamba architecture is a sequence-to-sequence model based on a state space model architecture. Based on my basic understanding of the original paper and the GitHub repository, the code below is a reasonable (although likely not optimal) way to utilize the Mamba architecture. The concept is simple: stack several Mamba layers with normalization and optionally dropout. There's no need to add positional encoding or masking.
 
-Also note that one can use the mamba layer as part of other architectures as well for example replacing self-attention or the FFN in a transformer with Mamba (link paper).
+
+It's also worth noting that one can incorporate the Mamba layer into other architectures, for example, replacing self-attention or the FFN in a transformer with Mamba (see Mamba Architecture: Interleaving Blocks on [page 31](https://arxiv.org/pdf/2312.00752.pdf).
+
 
 
 ```python
@@ -43,7 +49,15 @@ class MambaTower(nn.Module):
 
 ## Cifar-10 Classification:
 
-We'll use the MambaTower class above as the backbone of a vision model on the patchified version of cifar-10 images. Here's the code for that - it's fairly straightforward:
+We'll use the MambaTower class above as the backbone of a vision model on the patchified version of cifar-10 images. 
+
+### Setup:
+
+We compare the model above with a Transformer ViT-like model based on the same patches. Both models have an embed_dim of 256, 6 layers, and the Transformer model has an FFN dim of 2*embed_dim (512) to maintain similar # of parameters between the two models. 
+
+We use a patch size of 4 and various basic augmentation techniques (see the code).
+
+Here's the code for the steup - it's fairly straightforward (To get a ViT like model I replace the MambaTower with a stack of Transformer Encoders):
 
 ```python
 class ImgClassifier(nn.Module):
@@ -68,15 +82,8 @@ class ImgClassifier(nn.Module):
 ```
 
 
-### Setup:
-
-We'll compare the model above with a transformer ViT-like model based on the same patches. 
-Both models have embed_dim of 256, 6 layers, and the transformer model has ffn dim of 2*embed_dim (512) to keep the parameters in the two model similar. To get a ViT like model we'll simply replace the MambaTower with a Transformer Decoder Tower. 
-
-We'll use patch size of 4 and various basic augmentation technizues (see the code).
-
 ### Results:
-We see below that the two models are fairly comporable with the mamba based model having a bit of an edge (85% accuracy vs. 84% accuracy on the cifar-10 test set). While the mamba model learns "faster" in terms of iterations it's about twice as slow to train (note that I am using the simple mamba class - 
+The two models perform comparably, with the Mamba-based model having a slight edge (85% accuracy vs. 84% accuracy on the CIFAR-10 test set). While the Mamba model learns "faster" in terms of iterations, it's about twice as slow to train (note that I am using the simple Mamba class - their LLM [example](https://github.com/state-spaces/mamba/blob/main/mamba_ssm/models/mixer_seq_simple.py) looks more optimized but harder to read.
 
 Either way 85% accuracy on cifar-10 straight out of the box with no convolutions is not bad at all - so I was pretty impressed. 
 
@@ -86,22 +93,40 @@ https://api.wandb.ai/links/apapiu/00tsl03a
 
 
 
-
 ## Shakespeare Char Level Language Model:
 
-The paper has quite a few examples showcasing that mamba is better or equal to the best transformers recepie out there. Still I wanted to try it out on a small dataset so decided to try it out on the shakespeare dataset. I use the split and setup just like in the [nano-gpt)(https://github.com/karpathy/nanoGPT/tree/master/data/shakespeare_char) repo.
+The paper has quite a few examples showcasing that mamba is better or equal to the best transformers recepie out there. Still I wanted to try it out on a small dataset so decided to try it out on the shakespeare dataset. I use the split and data setup found in the [nano-gpt)(https://github.com/karpathy/nanoGPT/tree/master/data/shakespeare_char) repo.
 
-Setup: Embed dimension is 256 with 256 context window and transformer has a ffn dim of 512. Both models have roughly 2 million parameters.
+Model setup: Embed dimension is 256 with 256 context window and transformer has a ffn dim of 512. Both models have roughly 2 million parameters. The code is again very simple:
 
-Results: The mamba model does seems to converge faster (altough it's also more prone to severe overfitting). Mamba got a val loss of 1.463 (lower than the example in [nano-gpt](https://github.com/karpathy/nanoGPT/tree/master#:~:text=validation%20loss%20is-,1.4697,-.%20Based%20on%20the)). 
+```python
+class GPMamba(nn.Module):
+    def __init__(self, embed_dim, seq_len, n_layers, dropout):
+        super().__init__()
+
+        self.embed = nn.Embedding(vocab_size, embed_dim)
+        self.tower = MambaTower(embed_dim, n_layers, seq_len=seq_len, global_pool=False)
+        self.out_proj = nn.Sequential(nn.LayerNorm(embed_dim),
+                                      nn.Linear(embed_dim, vocab_size))
+
+    def forward(self, x):
+        x = self.tower(self.embed(x))
+        return self.out_proj(x)
+```
+
+Results: The mamba model does seems to converge faster (altough it's also more prone to severe overfitting see below). Mamba got a val loss of 1.463 (lower than the example in [nano-gpt](https://github.com/karpathy/nanoGPT/tree/master#:~:text=validation%20loss%20is-,1.4697,-.%20Based%20on%20the) which gets 1.4697). 
 
 <img width="1136" alt="image" src="https://github.com/apapiu/mamba_small_bench/assets/13619417/3fda926d-3c25-4baa-8639-cb7e174658a5">
 
 ### Overfitting:
-It looks like the mamba model was more likely to overfit and completely memorize the training data - especially without dropout. See below for a model with embed_dim = 512 and no dropout.
+It looks like the mamba model is more likely to overfit and completely memorize the training data - especially without dropout. See below for a model with embed_dim = 512 and no dropout. Will need to explore this more.. also this is likely not an issue when training on larger datasets.
 
 <img width="530" alt="image" src="https://github.com/apapiu/mamba_small_bench/assets/13619417/1e4266d6-066b-4ac1-8566-7347b881b1b8">
 
+### Future ideas:
 
+- Explore scaling in terms of epoch time vs. sequence length on mamba vs. transformer 
+- Use it for autoregressice pixel generation
+- Use it in a diffusion like model.
 
 
