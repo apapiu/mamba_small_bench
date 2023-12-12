@@ -19,35 +19,9 @@ from einops.layers.torch import Rearrange
 import torchmetrics
 import torchvision
 import torchvision.transforms as transforms
-from mamba_ssm import Mamba
+from mamba_blocks import MambaTower, MambaBlock
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-
-class MambaBlock(nn.Module):
-    def __init__(self, embed_dim, dropout_level=0):
-        super().__init__()
-
-        self.mamba =  Mamba(d_model=embed_dim, d_state=16, d_conv=4, expand=2)
-        self.norm = nn.LayerNorm(embed_dim)
-        self.dropout = nn.Dropout(dropout_level)
-
-    def forward(self, x):
-        x = self.norm(self.mamba(x) + x)
-        return self.dropout(x)
-
-
-class MambaTower(nn.Module):
-    def __init__(self, embed_dim, n_layers, seq_len=None, global_pool=False, dropout=0):
-        super().__init__()
-        self.blocks = nn.Sequential(*[MambaBlock(embed_dim, dropout_level=dropout) for _ in range(n_layers)])
-        self.global_pool = global_pool #for classification or other supervised learning.
-
-    def forward(self, x):
-        #for input (bs, n, d) it returns either (bs, n, d) or (bs, d) is global_pool
-        out = self.blocks(x) if not self.global_pool else torch.mean(self.blocks(x),1)
-        return out
-
 
 class ImgClassifier(nn.Module):
     def __init__(self, patch_size=4, img_size=32, n_channels=3, embed_dim=256, n_layers=6, dropout=0):
