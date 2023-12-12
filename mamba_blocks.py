@@ -1,9 +1,3 @@
-#!pip install causal-conv1d==1.0.2 mamba-ssm
-
-import torch
-import torch.nn as nn
-from mamba_ssm import Mamba
-
 class MambaBlock(nn.Module):
     def __init__(self, embed_dim, dropout_level=0):
         super().__init__()
@@ -18,9 +12,9 @@ class MambaBlock(nn.Module):
 
 
 class MambaTower(nn.Module):
-    def __init__(self, embed_dim, n_layers, seq_len=None, global_pool=False):
+    def __init__(self, embed_dim, n_layers, seq_len=None, global_pool=False, dropout=0):
         super().__init__()
-        self.blocks = nn.Sequential(*[MambaBlock(embed_dim) for _ in range(n_layers)])
+        self.blocks = nn.Sequential(*[MambaBlock(embed_dim, dropout_level=dropout) for _ in range(n_layers)])
         self.global_pool = global_pool #for classification or other supervised learning.
 
     def forward(self, x):
