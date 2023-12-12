@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+from mamba_ssm import Mamba
 
 class MambaBlock(nn.Module):
     def __init__(self, embed_dim, dropout_level=0):
