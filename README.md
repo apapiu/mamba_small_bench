@@ -13,9 +13,9 @@ Shere the paper below:
 
 #### TLDR of first impressions:
 
-CIFAR-10 Classification: The Mamba-based model slightly outperforms the Transformer ViT-like model (85% vs. 84% accuracy) on CIFAR-10 for models with similar # of params. However, the Mamba model is about 2x slower to train despite faster learning in terms of iterations.
+- **CIFAR-10 Classification**: The Mamba-based model slightly outperforms the Transformer ViT-like model (85% vs. 84% accuracy) on CIFAR-10 for models with similar # of params. However, the Mamba model is about 2x slower to train despite faster learning in terms of iterations.
 
-Shakespeare Character-Level Model: Mamba shows quicker convergence and a slightly better validation loss (1.463 (lower than the example in nano-gpt which gets 1.4697)). However, it's more prone to overfitting, particularly in configurations without dropout.
+- **Shakespeare Character-Level Model**: Mamba shows quicker convergence and a slightly better validation loss (1.463 (lower than the example in nano-gpt which gets 1.4697)). However, it's more prone to overfitting, particularly in configurations without dropout.
 
 ## Stacking Mamba Layers:
 The Mamba architecture is a sequence-to-sequence model based on a state space model architecture. Based on my basic understanding of the original paper and the GitHub repository, the code below is a reasonable (although likely not optimal) way to utilize the Mamba architecture. The concept is simple: stack several Mamba layers with normalization and optionally dropout. There's no need to add positional encoding or masking.
